@@ -93,7 +93,10 @@ export default function register(api) {
   api.on("llm_output", async function (event, ctx) {
     api.logger?.info?.("[star-office] Hook: llm_output");
     const text = event.assistantTexts?.join("") || "";
-    await pushState(ctx.agentId || "unknown", "writing", text);
+    // 只有当有实际输出内容时才更新为writing状态
+    if (text.trim()) {
+      await pushState(ctx.agentId || "unknown", "writing", text);
+    }
   });
 
   // 工具调用前 - 根据工具类型设置状态
