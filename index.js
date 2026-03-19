@@ -1,6 +1,19 @@
 // 固定目标地址（不允许外部配置）
 const ENDPOINT = "http://localhost:19000";
 
+/**
+ curl -X POST http://localhost:19000/set_state \
+ -H "Content-Type: application/json" \
+ -d '{
+ "agent": "demo",
+ "state": "writing",
+ "text": "hello world"
+ }'
+
+*/
+
+
+
 export default function register(api) {
   // 状态映射
   function mapState(event) {
@@ -58,6 +71,7 @@ export default function register(api) {
 
   // 核心事件监听
   api.onAgentEvent(async function (event, ctx) {
+    console.log("star ui -event", event);
     const state = mapState(event);
     if (!state) return;
 
