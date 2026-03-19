@@ -1,7 +1,7 @@
 // 固定目标地址（不允许外部配置）
 const ENDPOINT = "http://localhost:19000";
 
-module.exports = function register(api) {
+export default function register(api) {
   // 状态映射
   function mapState(event) {
     switch (event.type) {

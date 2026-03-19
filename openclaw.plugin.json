@@ -1,10 +1,13 @@
 {
-  "id": "star-office-state-plugin",
-  "name": "star-office-state-plugin",
-  "version": "0.1.0",
+  "id": "star-office-state",
+  "name": "StarOffice State Plugin",
+  "version": "1.0.0",
+  "description": "Monitors agent execution state and synchronizes it to StarOffice via HTTP endpoint",
+  "author": "",
+  "license": "MIT",
   "configSchema": {
     "type": "object",
-    "properties": {},
-    "additionalProperties": true
+    "additionalProperties": false,
+    "properties": {}
   }
 }
