@@ -1,0 +1,5 @@
+{
+  "id": "star-office-state-plugin",
+  "kind": "lifecycle",
+  "main": "./index.js"
+}
