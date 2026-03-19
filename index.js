@@ -25,6 +25,8 @@ export default function register(api) {
       if (last === state) return;
       lastStateMap.set(agent, state);
 
+      api.logger?.info?.(`[star-office] pushState: agent=${agent}, state=${state}, text=${text?.substring(0, 50)}`);
+
       await fetch(ENDPOINT + "/set_state", {
         method: "POST",
         headers: {
@@ -37,7 +39,7 @@ export default function register(api) {
         })
       });
     } catch (e) {
-      // 吞掉错误
+      api.logger?.error?.(`[star-office] pushState error: ${e}`);
     }
   }
 
@@ -69,13 +71,17 @@ export default function register(api) {
     return "executing";
   }
 
+  api.logger?.info?.("[star-office] Plugin registered");
+
   // Agent 启动
   api.on("before_agent_start", async function (event, ctx) {
+    api.logger?.info?.("[star-office] Hook: before_agent_start");
     await pushState(ctx.agentId || "unknown", "idle", "");
   });
 
   // Agent 结束
   api.on("agent_end", async function (event, ctx) {
+    api.logger?.info?.("[star-office] Hook: agent_end");
     if (event.error) {
       await pushState(ctx.agentId || "unknown", "error", event.error);
     } else {
@@ -85,20 +91,24 @@ export default function register(api) {
 
   // LLM 输出 - 思考状态
   api.on("llm_output", async function (event, ctx) {
+    api.logger?.info?.("[star-office] Hook: llm_output");
     const text = event.assistantTexts?.join("") || "";
     await pushState(ctx.agentId || "unknown", "writing", text);
   });
 
   // 工具调用前 - 根据工具类型设置状态
   api.on("before_tool_call", async function (event, ctx) {
+    api.logger?.info?.(`[star-office] Hook: before_tool_call, tool=${event.toolName}`);
     const state = getStateFromToolName(event.toolName);
     await pushState(ctx.agentId || "unknown", state, event.toolName);
   });
 
   // 工具调用后 - 如果有错误则设置error状态
   api.on("after_tool_call", async function (event, ctx) {
+    api.logger?.info?.(`[star-office] Hook: after_tool_call, tool=${event.toolName}`);
     if (event.error) {
       await pushState(ctx.agentId || "unknown", "error", event.error);
     }
   });
 };
+
