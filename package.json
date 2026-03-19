@@ -1,27 +1,16 @@
 {
-  "name": "star-office-state",
+  "name": "star-office-state-plugin",
   "version": "1.0.0",
-  "description": "Agent state synchronization plugin for OpenClaw",
-  "type": "module",
-  "main": "./index.js",
-  "exports": {
-    ".": "./index.js"
-  },
-  "files": [
-    "index.js",
-    "openclaw.plugin.json",
-    "LICENSE"
-  ],
-  "scripts": {
-    "test": "node --test"
-  },
-  "devDependencies": {},
+  "description": "",
+  "main": "index.js",
   "openclaw": {
-    "extensions": [
-      "./index.js"
-    ]
+    "extensions": ["./index.js"]
   },
-  "keywords": ["openclaw", "plugin", "state", "monitor"],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
   "author": "",
-  "license": "MIT"
+  "license": "ISC",
+  "packageManager": "pnpm@10.27.0"
 }
