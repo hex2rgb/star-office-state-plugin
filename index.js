@@ -15,24 +15,6 @@ const ENDPOINT = "http://localhost:19000";
 
 
 export default function register(api) {
-  // 状态映射
-  function mapState(event) {
-    switch (event.type) {
-      case "task:start":
-        return "executing";
-      case "task:thinking":
-        return "thinking";
-      case "task:tool_call":
-        return "executing";
-      case "task:error":
-        return "error";
-      case "task:done":
-        return "idle";
-      default:
-        return null;
-    }
-  }
-
   // 防抖（避免重复刷）
   const lastStateMap = new Map();
 
@@ -59,36 +41,64 @@ export default function register(api) {
     }
   }
 
-  // Agent 启动 - 使用 before_agent_start hook
+  // 根据工具名称判断状态
+  function getStateFromToolName(toolName) {
+    if (!toolName) return "executing";
+
+    const lowerName = toolName.toLowerCase();
+
+    // writing - 写代码/写文档
+    if (lowerName.includes("write") || lowerName.includes("edit")) {
+      return "writing";
+    }
+
+    // researching - 搜索/调研
+    if (lowerName.includes("search") || lowerName.includes("grep") ||
+        lowerName.includes("glob") || lowerName.includes("read") ||
+        lowerName.includes("fetch") || lowerName.includes("explore")) {
+      return "researching";
+    }
+
+    // syncing - 同步数据/推送
+    if (lowerName.includes("git") || lowerName.includes("push") ||
+        lowerName.includes("commit") || lowerName.includes("sync")) {
+      return "syncing";
+    }
+
+    // 默认为 executing
+    return "executing";
+  }
+
+  // Agent 启动
   api.on("before_agent_start", async function (event, ctx) {
-    await pushState(ctx.agent?.id || "unknown", "idle", "agent started");
+    await pushState(ctx.agentId || "unknown", "idle", "");
   });
 
-  // Agent 停止 - 使用 agent_end hook
+  // Agent 结束
   api.on("agent_end", async function (event, ctx) {
-    await pushState(ctx.agent?.id || "unknown", "idle", "agent stopped");
+    if (event.error) {
+      await pushState(ctx.agentId || "unknown", "error", event.error);
+    } else {
+      await pushState(ctx.agentId || "unknown", "idle", "");
+    }
   });
 
-  // LLM 输出监听 - 用来捕获执行and思考事件
+  // LLM 输出 - 思考状态
   api.on("llm_output", async function (event, ctx) {
-    console.log("star ui - llm_output", event);
-    const state = "executing";
-    
-    await pushState(
-      ctx.agent?.id || "unknown",
-      state,
-      event.response?.content?.text || ""
-    );
+    const text = event.assistantTexts?.join("") || "";
+    await pushState(ctx.agentId || "unknown", "writing", text);
   });
 
-  // 消息发送 - 替代输出流
-  api.on("message_sent", async function (event, ctx) {
-    if (!event.message?.content) return;
+  // 工具调用前 - 根据工具类型设置状态
+  api.on("before_tool_call", async function (event, ctx) {
+    const state = getStateFromToolName(event.toolName);
+    await pushState(ctx.agentId || "unknown", state, event.toolName);
+  });
 
-    await pushState(
-      ctx.agent?.id || "unknown",
-      "executing",
-      event.message.content
-    );
+  // 工具调用后 - 如果有错误则设置error状态
+  api.on("after_tool_call", async function (event, ctx) {
+    if (event.error) {
+      await pushState(ctx.agentId || "unknown", "error", event.error);
+    }
   });
 };
