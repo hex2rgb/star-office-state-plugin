@@ -59,37 +59,36 @@ export default function register(api) {
     }
   }
 
-  // Agent 启动
-  api.onAgentStart(async function (agent) {
-    await pushState(agent.id, "idle", "agent started");
+  // Agent 启动 - 使用 before_agent_start hook
+  api.on("before_agent_start", async function (event, ctx) {
+    await pushState(ctx.agent?.id || "unknown", "idle", "agent started");
   });
 
-  // Agent 停止
-  api.onAgentStop(async function (agent) {
-    await pushState(agent.id, "idle", "agent stopped");
+  // Agent 停止 - 使用 agent_end hook
+  api.on("agent_end", async function (event, ctx) {
+    await pushState(ctx.agent?.id || "unknown", "idle", "agent stopped");
   });
 
-  // 核心事件监听
-  api.onAgentEvent(async function (event, ctx) {
-    console.log("star ui -event", event);
-    const state = mapState(event);
-    if (!state) return;
-
+  // LLM 输出监听 - 用来捕获执行and思考事件
+  api.on("llm_output", async function (event, ctx) {
+    console.log("star ui - llm_output", event);
+    const state = "executing";
+    
     await pushState(
-      ctx.agent.id,
+      ctx.agent?.id || "unknown",
       state,
-      event.summary || ""
+      event.response?.content?.text || ""
     );
   });
 
-  // 输出流（可选）
-  api.onAgentOutput(async function (chunk, ctx) {
-    if (!chunk || !chunk.text) return;
+  // 消息发送 - 替代输出流
+  api.on("message_sent", async function (event, ctx) {
+    if (!event.message?.content) return;
 
     await pushState(
-      ctx.agent.id,
+      ctx.agent?.id || "unknown",
       "executing",
-      chunk.text
+      event.message.content
     );
   });
 };
