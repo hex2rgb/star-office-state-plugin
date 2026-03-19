@@ -1,87 +1,81 @@
-const ENDPOINT = "http://127.0.0.1:18791/agent-push";
+// 固定目标地址（不允许外部配置）
+const ENDPOINT = "http://localhost:19000";
 
-async function pushState(name, state, memo) {
-  try {
-    await fetch(ENDPOINT, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        name,
-        state,
-        memo,
-      }),
-    });
-  } catch (err) {
-    console.error("[star-office] push failed:", err.message);
-  }
-}
-
-function getName(event) {
-  return event?.agent?.name || "agent";
-}
-
-/**
- * 状态识别（核心逻辑）
- */
-function detectState(event) {
-  // ❌ 出错优先
-  if (event?.error) {
-    return ["error", event.error?.message || "Error"];
+module.exports = function register(api) {
+  // 状态映射
+  function mapState(event) {
+    switch (event.type) {
+      case "task:start":
+        return "executing";
+      case "task:thinking":
+        return "thinking";
+      case "task:tool_call":
+        return "executing";
+      case "task:error":
+        return "error";
+      case "task:done":
+        return "idle";
+      default:
+        return null;
+    }
   }
 
-  // 🔧 工具调用
-  if (event?.type === "tool_call" || event?.tool) {
-    return ["executing", `Running ${event?.tool?.name || "tool"}`];
+  // 防抖（避免重复刷）
+  const lastStateMap = new Map();
+
+  // 发送状态
+  async function pushState(agent, state, text) {
+    try {
+      const last = lastStateMap.get(agent);
+      if (last === state) return;
+      lastStateMap.set(agent, state);
+
+      await fetch(ENDPOINT + "/set_state", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          agent: agent,
+          state: state,
+          text: text || ""
+        })
+      });
+    } catch (e) {
+      // 吞掉错误
+    }
   }
 
-  // 🔍 搜索 / 检索
-  if (
-    event?.type === "search" ||
-    event?.type === "retrieval" ||
-    event?.phase === "research"
-  ) {
-    return ["researching", "Researching..."];
-  }
+  // Agent 启动
+  api.onAgentStart(async function (agent) {
+    await pushState(agent.id, "idle", "agent started");
+  });
 
-  // 🔄 数据处理
-  if (event?.type === "sync" || event?.phase === "sync") {
-    return ["syncing", "Syncing..."];
-  }
+  // Agent 停止
+  api.onAgentStop(async function (agent) {
+    await pushState(agent.id, "idle", "agent stopped");
+  });
 
-  // ✍️ 默认写作
-  return ["writing", "Working..."];
-}
+  // 核心事件监听
+  api.onAgentEvent(async function (event, ctx) {
+    const state = mapState(event);
+    if (!state) return;
 
-export default {
-  lifecycle: {
-    /**
-     * 开始
-     */
-    async before_agent_start(event) {
-      await pushState(getName(event), "writing", "Starting...");
-    },
+    await pushState(
+      ctx.agent.id,
+      state,
+      event.summary || ""
+    );
+  });
 
-    /**
-     * 中间过程（关键）
-     */
-    async on_event(event) {
-      const [state, memo] = detectState(event);
-      await pushState(getName(event), state, memo);
-    },
+  // 输出流（可选）
+  api.onAgentOutput(async function (chunk, ctx) {
+    if (!chunk || !chunk.text) return;
 
-    /**
-     * 结束
-     */
-    async after_agent_end(event) {
-      const name = getName(event);
-
-      if (event?.success === false) {
-        await pushState(name, "error", "Failed");
-      } else {
-        await pushState(name, "idle", "Idle");
-      }
-    },
-  },
+    await pushState(
+      ctx.agent.id,
+      "executing",
+      chunk.text
+    );
+  });
 };

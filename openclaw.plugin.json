@@ -1,5 +1,5 @@
 {
-  "id": "star-office-state-plugin",
-  "kind": "lifecycle",
-  "main": "./index.js"
+  "id": "star-office-bridge",
+  "name": "Star Office Bridge",
+  "version": "0.1.0"
 }
