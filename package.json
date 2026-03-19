@@ -1,5 +1,5 @@
 {
-  "name": "@your-org/star-office-state",
+  "name": "star-office-state",
   "version": "1.0.0",
   "description": "Agent state synchronization plugin for OpenClaw",
   "type": "module",
@@ -10,7 +10,6 @@
   "files": [
     "index.js",
     "openclaw.plugin.json",
-    "README.md",
     "LICENSE"
   ],
   "scripts": {
