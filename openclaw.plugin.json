@@ -1,5 +1,9 @@
 {
-  "id": "star-office-bridge",
+  "id": "star-office-state-plugin",
   "name": "Star Office Bridge",
-  "version": "0.1.0"
+  "version": "0.1.0",
+  "configSchema": {
+    "type": "object",
+    "properties": {}
+  }
 }
