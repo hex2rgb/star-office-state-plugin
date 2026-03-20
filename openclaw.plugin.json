@@ -1,5 +1,5 @@
 {
-  "id": "star-office-state",
+  "id": "star-office-state-plugin",
   "name": "StarOffice State Plugin",
   "version": "1.0.0",
   "description": "Monitors agent execution state and synchronizes it to StarOffice via HTTP endpoint",
